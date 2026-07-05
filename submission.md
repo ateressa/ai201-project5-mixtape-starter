@@ -1,5 +1,9 @@
 # Mixtape — Codebase Map
 
+## AI usage
+
+I used Claude AI as a second check after I'd already found and applied each fix myself — confirming that the root cause I identified (e.g., the `songs[:-1]` slice in Issue #5) matched the actual failure, and checking that a fix for one issue didn't have side effects on the others or on unrelated passing tests.
+
 ## Bug fixes
 
 ### Issue #1: My listening streak keeps resetting
@@ -108,3 +112,4 @@ The *rating* flow (`POST /songs/<song_id>/rate` → `routes/songs.py:rate` → `
 - **State derivation vs. stored state is split inconsistently.** `listening_streak`/`last_listened_at` are stored fields on `User` that get mutated in place (`update_listening_streak`), whereas the "listening now" feed and activity feed are recomputed on every request straight from the `ListeningEvent` log. Ratings are stored/upserted state (one row per user+song); notifications are append-only log entries that get flagged `read`.
 - **`notification_service.py` is really two things glued together**: generic notification CRUD (`create_notification`, `get_notifications`, `mark_as_read`) plus two unrelated write-actions (`add_to_playlist`, `rate_song`) that happen to *also* want to notify someone. That's why the playlist-add mutation logic lives outside `playlist_service.py`.
 - **Association tables are used two different ways**: `song_tags` and `friendships` are bare join tables (`secondary=` with just the two FK columns), while `playlist_entries` carries extra metadata (`position`, `added_by`, `added_at`) and is queried directly with explicit `join()`/`order_by()` in `playlist_service.py` rather than through the ORM `secondary` relationship — `Playlist.songs` (used in `notification_service.add_to_playlist`) and the manual `playlist_entries` join (used in `get_playlist_songs`) are two different paths into the same underlying table.
+
